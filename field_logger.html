@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Field Logger</title>
+
+<style>
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f5f4f0;--bg-tertiary:#ebe9e3;
+  --bg-info:#e6f1fb;--bg-danger:#fcebeb;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
+  --text-info:#0c447c;--text-danger:#791f1f;
+  --border-tertiary:rgba(0,0,0,0.1);--border-secondary:rgba(0,0,0,0.2);
+  --radius-md:8px;--radius-lg:12px;
+  --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg-primary:#1c1c1a;--bg-secondary:#2a2a27;--bg-tertiary:#151513;
+    --bg-info:#0c447c;--bg-danger:#501313;
+    --text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-tertiary:#888780;
+    --text-info:#b5d4f4;--text-danger:#f7c1c1;
+    --border-tertiary:rgba(255,255,255,0.12);--border-secondary:rgba(255,255,255,0.22);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--font-sans);background:var(--bg-tertiary);min-height:100vh;color:var(--text-primary);
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.app{max-width:480px;margin:0 auto;padding:0 0 90px}
+.header{background:var(--bg-primary);border-bottom:0.5px solid var(--border-tertiary);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header-title{font-size:17px;font-weight:600}
+.header-sub{font-size:12px;color:var(--text-secondary);margin-top:1px}
+.badge{font-size:12px;background:var(--bg-info);color:var(--text-info);padding:4px 10px;border-radius:20px;font-weight:600}
+.tabs{display:flex;background:var(--bg-primary);border-bottom:0.5px solid var(--border-tertiary);position:sticky;top:53px;z-index:9}
+.tab{flex:1;padding:11px 4px;font-size:13px;text-align:center;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--text-primary);border-bottom-color:var(--text-primary);font-weight:600}
+.view{display:none;padding:16px}
+.view.active{display:block}
+.card{background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px}
+.label{font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em}
+.photo-zone{border:1.5px dashed var(--border-secondary);border-radius:var(--radius-md);padding:32px 16px;text-align:center;cursor:pointer;background:var(--bg-secondary)}
+.photo-zone i{font-size:30px;color:var(--text-tertiary);display:block;margin-bottom:8px}
+.photo-zone p{font-size:15px;color:var(--text-secondary)}
+.photo-zone small{font-size:12px;color:var(--text-tertiary)}
+.photo-preview{width:100%;border-radius:var(--radius-md);max-height:220px;object-fit:cover;display:none}
+select,input[type=text],textarea{width:100%;padding:11px 12px;font-size:16px;font-family:var(--font-sans);background:var(--bg-secondary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);color:var(--text-primary);appearance:none;-webkit-appearance:none}
+textarea{min-height:76px;resize:none;line-height:1.5}
+.type-toggle{display:flex;gap:8px;margin-bottom:12px}
+.type-btn{flex:1;padding:10px;border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);font-size:14px;cursor:pointer;background:var(--bg-secondary);color:var(--text-secondary);font-family:var(--font-sans);font-weight:500}
+.type-btn.active{background:var(--text-primary);color:var(--bg-primary);border-color:var(--text-primary)}
+.condition-row{display:flex;gap:8px}
+.cond-btn{flex:1;padding:11px 6px;border-radius:var(--radius-md);font-size:14px;cursor:pointer;font-family:var(--font-sans);border:0.5px solid var(--border-secondary);background:var(--bg-secondary);color:var(--text-secondary);text-align:center;font-weight:500}
+.cond-btn.good.active{background:#EAF3DE;color:#27500A;border-color:#3B6D11}
+.cond-btn.fair.active{background:#FAEEDA;color:#633806;border-color:#854F0B}
+.cond-btn.poor.active{background:#FCEBEB;color:#791F1F;border-color:#A32D2D}
+@media (prefers-color-scheme: dark){
+  .cond-btn.good.active{background:#27500A;color:#EAF3DE;border-color:#639922}
+  .cond-btn.fair.active{background:#633806;color:#FAEEDA;border-color:#BA7517}
+  .cond-btn.poor.active{background:#791F1F;color:#FCEBEB;border-color:#E24B4A}
+}
+.defic-toggle{display:flex;align-items:center;gap:10px;padding:12px;border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);background:var(--bg-secondary);cursor:pointer}
+.defic-toggle.flagged{background:#FCEBEB;border-color:#A32D2D}
+.defic-toggle i{font-size:19px;color:var(--text-tertiary)}
+.defic-toggle.flagged i{color:#A32D2D}
+.defic-toggle span{font-size:14px;color:var(--text-secondary);flex:1}
+.defic-toggle.flagged span{color:#791F1F;font-weight:600}
+@media (prefers-color-scheme: dark){
+  .defic-toggle.flagged{background:#501313;border-color:#E24B4A}
+  .defic-toggle.flagged i{color:#F7C1C1}
+  .defic-toggle.flagged span{color:#F7C1C1}
+}
+.voice-btn{display:flex;align-items:center;gap:8px;padding:11px 12px;background:var(--bg-secondary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);font-size:15px;color:var(--text-secondary);cursor:pointer;width:100%;font-family:var(--font-sans)}
+.voice-btn.recording{background:var(--bg-danger);color:var(--text-danger);border-color:#A32D2D}
+.save-btn{width:100%;padding:15px;background:var(--text-primary);color:var(--bg-primary);border:none;border-radius:var(--radius-md);font-size:16px;font-weight:600;cursor:pointer;margin-top:2px;font-family:var(--font-sans)}
+.save-btn:active{opacity:0.8}
+.sys-filter{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.filter-chip{white-space:nowrap;font-size:13px;padding:6px 12px;border-radius:20px;border:0.5px solid var(--border-secondary);background:var(--bg-primary);color:var(--text-secondary);cursor:pointer}
+.filter-chip.active{background:var(--text-primary);color:var(--bg-primary);border-color:var(--text-primary)}
+.entry{background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px}
+.entry.deficient{border-color:#A32D2D;border-width:1px}
+.entry-img{width:100%;height:130px;object-fit:cover;display:block}
+.entry-body{padding:11px 13px}
+.pill-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.pill-sys{background:var(--bg-info);color:#0C447C}
+.pill-good{background:#EAF3DE;color:#27500A}
+.pill-fair{background:#FAEEDA;color:#633806}
+.pill-poor{background:#FCEBEB;color:#791F1F}
+.pill-defic{background:#FCEBEB;color:#791F1F}
+.pill-proj{background:var(--bg-secondary);color:var(--text-secondary)}
+@media (prefers-color-scheme: dark){
+  .pill-sys{background:#0C447C;color:#E6F1FB}
+  .pill-good{background:#27500A;color:#EAF3DE}
+  .pill-fair{background:#633806;color:#FAEEDA}
+  .pill-poor,.pill-defic{background:#791F1F;color:#FCEBEB}
+}
+.entry-note{font-size:14px;color:var(--text-secondary);line-height:1.5}
+.entry-time{font-size:11px;color:var(--text-tertiary);margin-top:5px}
+.entry-footer{display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid var(--border-tertiary);padding:9px 13px;background:var(--bg-secondary)}
+.del-btn{font-size:13px;color:var(--text-danger);cursor:pointer;background:none;border:none;padding:0;font-family:var(--font-sans)}
+.stat-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--bg-secondary);border-radius:var(--radius-md);padding:13px;text-align:center}
+.stat-n{font-size:24px;font-weight:600}
+.stat-l{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.sys-breakdown{display:flex;flex-direction:column;gap:7px}
+.sys-row{display:flex;align-items:center;gap:8px;font-size:13px}
+.sys-row-label{flex:1;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.sys-bar-wrap{flex:2;background:var(--bg-secondary);border-radius:4px;height:6px;overflow:hidden}
+.sys-bar{background:var(--text-primary);height:6px;border-radius:4px}
+.sys-row-count{font-size:12px;font-weight:600;min-width:18px;text-align:right}
+.export-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;background:var(--bg-secondary);border:0.5px solid var(--border-secondary);border-radius:var(--radius-md);font-size:15px;color:var(--text-primary);cursor:pointer;font-family:var(--font-sans);margin-bottom:8px}
+.export-btn i{font-size:18px;color:var(--text-secondary)}
+.empty{text-align:center;padding:40px 20px;color:var(--text-tertiary)}
+.empty i{font-size:34px;display:block;margin-bottom:8px}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text-primary);color:var(--bg-primary);padding:10px 20px;border-radius:20px;font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:100;white-space:nowrap;font-weight:500}
+.toast.show{opacity:1}
+#file-input{display:none}
+.install-banner{background:var(--bg-info);color:var(--text-info);padding:10px 16px;font-size:13px;text-align:center}
+.icon{display:inline-block;line-height:1;font-style:normal}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+  <div>
+    <div class="header-title">Field Logger</div>
+    <div class="header-sub" id="proj-display">No project set</div>
+  </div>
+  <span class="badge" id="count-badge">0 entries</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('capture')"><span class="icon" style="font-size:14px;margin-right:3px">📷</span>Capture</div>
+  <div class="tab" onclick="switchTab('log')"><span class="icon" style="font-size:14px;margin-right:3px">☰</span>Log</div>
+  <div class="tab" onclick="switchTab('export')"><span class="icon" style="font-size:14px;margin-right:3px">⬇</span>Export</div>
+</div>
+
+<div class="view active" id="view-capture">
+
+  <div class="card">
+    <div class="label">Project</div>
+    <input type="text" id="proj-input" placeholder="e.g. 23-433164 Leland Storage" oninput="updateProjDisplay()" />
+  </div>
+
+  <div class="card">
+    <div class="type-toggle">
+      <button class="type-btn active" id="btn-pca" onclick="setType('PCA')">PCA</button>
+      <button class="type-btn" id="btn-esa" onclick="setType('ESA')">ESA</button>
+    </div>
+    <div class="photo-zone" id="photo-zone" onclick="document.getElementById('file-input').click()">
+      <span class="icon">📷</span>
+      <p>Tap to take photo or upload</p>
+      <small>Stored locally — safe offline</small>
+    </div>
+    <img id="photo-preview" class="photo-preview" alt="Selected photo" />
+    <input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleFile(this)" />
+  </div>
+
+  <div class="card">
+    <div class="label">System</div>
+    <select id="sys-select" onchange="updateSubSys()">
+      <option value="">— select system —</option>
+    </select>
+    <div id="subsys-wrap" style="display:none;margin-top:8px">
+      <div class="label">Component</div>
+      <select id="subsys-select"><option value="">— select component —</option></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="margin-bottom:8px">Condition</div>
+    <div class="condition-row">
+      <button class="cond-btn good" id="cond-good" onclick="setCond('Good')"><span class="icon" style="font-size:18px;display:block;margin:0 auto 3px">✓</span>Good</button>
+      <button class="cond-btn fair" id="cond-fair" onclick="setCond('Fair')"><span class="icon" style="font-size:18px;display:block;margin:0 auto 3px">⚠</span>Fair</button>
+      <button class="cond-btn poor" id="cond-poor" onclick="setCond('Poor')"><span class="icon" style="font-size:18px;display:block;margin:0 auto 3px">⛔</span>Poor</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="margin-bottom:8px">Deficiency flag</div>
+    <div class="defic-toggle" id="defic-toggle" onclick="toggleDefic()">
+      <span class="icon" id="defic-icon">🚩</span>
+      <span id="defic-label">Tap to flag a deficiency</span>
+      <span class="icon" style="font-size:14px;color:var(--text-tertiary)">›</span>
+    </div>
+    <div id="defic-desc-wrap" style="display:none;margin-top:8px">
+      <input type="text" id="defic-desc" placeholder="Describe deficiency (optional)" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="margin-bottom:8px">Field note</div>
+    <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">
+      <span class="icon" id="voice-icon" style="font-size:18px">🎙</span>
+      <span id="voice-label">Tap to record voice note</span>
+    </button>
+    <div style="margin-top:8px">
+      <textarea id="note-text" placeholder="Or type note here..."></textarea>
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="saveEntry()">
+    <span class="icon" style="font-size:16px;margin-right:6px">💾</span>Save entry
+  </button>
+</div>
+
+<div class="view" id="view-log">
+  <div class="sys-filter" id="filter-bar"></div>
+  <div id="entries-list"></div>
+</div>
+
+<div class="view" id="view-export">
+  <div class="stat-row">
+    <div class="stat"><div class="stat-n" id="stat-total">0</div><div class="stat-l">entries</div></div>
+    <div class="stat"><div class="stat-n" id="stat-defic" style="color:#A32D2D">0</div><div class="stat-l">deficiencies</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-n" id="stat-good" style="color:#3B6D11">0</div><div class="stat-l">good</div></div>
+    <div class="stat"><div class="stat-n" id="stat-poor" style="color:#A32D2D">0</div><div class="stat-l">poor</div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="label" style="margin-bottom:10px">By system</div>
+    <div class="sys-breakdown" id="sys-breakdown"></div>
+  </div>
+  <div class="card">
+    <div class="label" style="margin-bottom:10px">Download</div>
+    <button class="export-btn" onclick="exportJSON()"><span class="icon">{ }</span>Export notes as JSON</button>
+    <button class="export-btn" onclick="exportCSV()"><span class="icon">▦</span>Export notes as CSV</button>
+    <button class="export-btn" onclick="exportPhotos()"><span class="icon">🖼</span>Download photo bundle (.zip)</button>
+    <button class="export-btn" onclick="exportDeficiencies()" style="color:#791F1F"><span class="icon" style="color:#A32D2D">🚩</span>Export deficiency log only</button>
+  </div>
+  <div class="card">
+    <div class="label" style="margin-bottom:8px">Danger zone</div>
+    <button class="export-btn" onclick="clearAll()" style="color:#A32D2D">
+      <span class="icon" style="color:#A32D2D">🗑</span>Clear all entries
+    </button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SYSTEMS={PCA:{"Exterior grounds":["Landscaping","Exterior stairs","Fencing","Site drainage","Retaining walls","Lighting"],"Pavement":["Asphalt pavement","Concrete pavement","Parking lot","Walkways","Curbs & gutters"],"Structural":["Foundation","Structural wall framing","Floor framing","Roof framing","Columns & beams"],"Cladding / facade":["Brick / masonry","Stucco","EIFS / Dryvit","Fiber cement","Metal panel","Wood siding","Storefront / curtainwall"],"Roof system":["Membrane / TPO / EPDM","Metal roof","Shingles","Flashing & coping","Drainage / scuppers","Skylights / hatches"],"Interior finishes":["Flooring","Ceiling tiles / drywall","Wall finishes","Doors & hardware","Windows (interior)"],"Mechanicals":["HVAC – rooftop unit","HVAC – split system","Water heaters","Plumbing","Electrical panels","Elevators"],"Fire & life safety":["Fire alarm","Sprinkler system","Standpipe / riser","Fire extinguishers","Exit / emergency lighting","ADA compliance"]},ESA:{"Site overview":["North","South","East","West","Aerial overview"],"Adjoining properties":["North adjoiner","South adjoiner","East adjoiner","West adjoiner"],"Potential RECs":["Staining / discoloration","Drums / containers","UST evidence","Vent pipes / fill ports","Distressed vegetation"],"Structures":["Building exterior","Foundation","Utility connections"],"Utilities":["Transformer / PCB","Generator","Above-ground tanks"],"Documentation":["Site placard / sign","Permit / regulatory notice","Label / manifest"]}};
+
+let entries=JSON.parse(localStorage.getItem('fl_entries2')||'[]');
+let currentType='PCA';
+let currentCond=null;
+let deficFlagged=false;
+let currentDataUrl=null;
+let mediaRecorder=null;
+let recording=false;
+let voiceChunks=[];
+let currentFilter='all';
+
+function updateProjDisplay(){
+  const v=document.getElementById('proj-input').value.trim();
+  document.getElementById('proj-display').textContent=v||'No project set';
+  try{localStorage.setItem('fl_last_project',v);}catch(e){}
+}
+
+function setType(t){
+  currentType=t;
+  document.getElementById('btn-pca').classList.toggle('active',t==='PCA');
+  document.getElementById('btn-esa').classList.toggle('active',t==='ESA');
+  populateSystems();
+  document.getElementById('subsys-wrap').style.display='none';
+}
+
+function populateSystems(){
+  const sel=document.getElementById('sys-select');
+  sel.innerHTML='<option value="">— select system —</option>';
+  Object.keys(SYSTEMS[currentType]).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+}
+
+function updateSubSys(){
+  const sys=document.getElementById('sys-select').value;
+  const wrap=document.getElementById('subsys-wrap');
+  const sel=document.getElementById('subsys-select');
+  if(!sys){wrap.style.display='none';return;}
+  const subs=SYSTEMS[currentType][sys]||[];
+  sel.innerHTML='<option value="">— select component —</option>';
+  subs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  wrap.style.display='block';
+}
+
+function setCond(c){
+  currentCond=currentCond===c?null:c;
+  ['good','fair','poor'].forEach(x=>{
+    const btn=document.getElementById('cond-'+x);
+    btn.classList.toggle('active',currentCond===x.charAt(0).toUpperCase()+x.slice(1));
+  });
+}
+
+function toggleDefic(){
+  deficFlagged=!deficFlagged;
+  const tog=document.getElementById('defic-toggle');
+  const wrap=document.getElementById('defic-desc-wrap');
+  tog.classList.toggle('flagged',deficFlagged);
+  document.getElementById('defic-icon').textContent='🚩';
+  document.getElementById('defic-label').textContent=deficFlagged?'Deficiency flagged':'Tap to flag a deficiency';
+  wrap.style.display=deficFlagged?'block':'none';
+  if(!deficFlagged)document.getElementById('defic-desc').value='';
+}
+
+function handleFile(input){
+  if(!input.files[0])return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    currentDataUrl=e.target.result;
+    const prev=document.getElementById('photo-preview');
+    prev.src=currentDataUrl;prev.style.display='block';
+    document.getElementById('photo-zone').style.display='none';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function toggleVoice(){
+  if(!recording){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      mediaRecorder=new MediaRecorder(stream);
+      voiceChunks=[];
+      mediaRecorder.ondataavailable=e=>voiceChunks.push(e.data);
+      mediaRecorder.onstop=()=>{
+        const txt=document.getElementById('note-text');
+        txt.value=(txt.value?txt.value+'\n':'')+'[voice note recorded]';
+        stream.getTracks().forEach(t=>t.stop());
+      };
+      mediaRecorder.start();recording=true;
+      document.getElementById('voice-btn').classList.add('recording');
+      document.getElementById('voice-icon').textContent='⏹';
+      document.getElementById('voice-label').textContent='Recording... tap to stop';
+    }catch(e){showToast('Microphone not available');}
+  }else{
+    mediaRecorder.stop();recording=false;
+    document.getElementById('voice-btn').classList.remove('recording');
+    document.getElementById('voice-icon').textContent='🎙';
+    document.getElementById('voice-label').textContent='Tap to record voice note';
+  }
+}
+
+function saveEntry(){
+  const proj=document.getElementById('proj-input').value.trim();
+  const sys=document.getElementById('sys-select').value;
+  const sub=document.getElementById('subsys-select').value;
+  const note=document.getElementById('note-text').value.trim();
+  const deficDesc=document.getElementById('defic-desc').value.trim();
+  if(!sys){showToast('Please select a system');return;}
+  const entry={
+    id:Date.now(),project:proj||null,type:currentType,
+    system:sys,component:sub||null,
+    condition:currentCond||null,
+    deficiency:deficFlagged,
+    deficiencyNote:deficFlagged?(deficDesc||null):null,
+    note:note||null,
+    photo:currentDataUrl||null,
+    timestamp:new Date().toISOString()
+  };
+  entries.unshift(entry);
+  persist();resetForm();showToast('Entry saved');updateBadge();
+}
+
+function resetForm(){
+  document.getElementById('sys-select').value='';
+  document.getElementById('subsys-wrap').style.display='none';
+  document.getElementById('note-text').value='';
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('photo-zone').style.display='';
+  document.getElementById('file-input').value='';
+  document.getElementById('defic-desc').value='';
+  document.getElementById('defic-desc-wrap').style.display='none';
+  currentDataUrl=null;currentCond=null;deficFlagged=false;
+  ['good','fair','poor'].forEach(x=>document.getElementById('cond-'+x).classList.remove('active'));
+  document.getElementById('defic-toggle').classList.remove('flagged');
+  document.getElementById('defic-icon').textContent='🚩';
+  document.getElementById('defic-label').textContent='Tap to flag a deficiency';
+}
+
+function persist(){try{localStorage.setItem('fl_entries2',JSON.stringify(entries));}catch(e){showToast('Storage full — export and clear soon');}}
+
+function updateBadge(){
+  document.getElementById('count-badge').textContent=entries.length+' '+(entries.length===1?'entry':'entries');
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');renderLog();
+}
+
+function renderLog(){
+  const list=document.getElementById('entries-list');
+  const bar=document.getElementById('filter-bar');
+  const chips=new Set(['all']);
+  entries.forEach(e=>chips.add(e.system));
+  bar.innerHTML='';
+  ['all',...[...chips].filter(x=>x!=='all')].forEach(s=>{
+    const d=document.createElement('div');
+    d.className='filter-chip'+(s===currentFilter?' active':'');
+    d.textContent=s==='all'?'All':s;
+    d.onclick=()=>setFilter(s,d);bar.appendChild(d);
+  });
+  const filtered=currentFilter==='all'?entries:entries.filter(e=>e.system===currentFilter);
+  if(!filtered.length){list.innerHTML='<div class="empty"><span class="icon" style="font-size:34px">🚫</span><p>No entries yet</p></div>';return;}
+  list.innerHTML=filtered.map(e=>`
+    <div class="entry${e.deficiency?' deficient':''}">
+      ${e.photo?`<img src="${e.photo}" class="entry-img" alt="${e.system}" loading="lazy"/>`:''}
+      <div class="entry-body">
+        <div class="pill-row">
+          ${e.project?`<span class="pill pill-proj">${escapeHtml(e.project)}</span>`:''}
+          <span class="pill pill-sys">${e.type} · ${e.system}${e.component?' · '+e.component:''}</span>
+          ${e.condition?`<span class="pill pill-${e.condition.toLowerCase()}">${e.condition}</span>`:''}
+          ${e.deficiency?`<span class="pill pill-defic"><span class="icon" style="font-size:11px">🚩</span> Deficiency</span>`:''}
+        </div>
+        ${e.deficiencyNote?`<div style="font-size:13px;color:#A32D2D;margin-bottom:5px;font-weight:600">${escapeHtml(e.deficiencyNote)}</div>`:''}
+        ${e.note?`<div class="entry-note">${escapeHtml(e.note)}</div>`:''}
+        <div class="entry-time">${new Date(e.timestamp).toLocaleString()}</div>
+      </div>
+      <div class="entry-footer">
+        <span style="font-size:12px;color:var(--text-tertiary)">${e.photo?'Photo attached':'No photo'}</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})"><span class="icon">🗑</span> Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function escapeHtml(s){
+  const d=document.createElement('div');d.textContent=s;return d.innerHTML;
+}
+
+function deleteEntry(id){
+  if(!confirm('Remove this entry?'))return;
+  entries=entries.filter(e=>e.id!==id);
+  persist();renderLog();updateBadge();renderExport();
+}
+
+function renderExport(){
+  document.getElementById('stat-total').textContent=entries.length;
+  document.getElementById('stat-defic').textContent=entries.filter(e=>e.deficiency).length;
+  document.getElementById('stat-good').textContent=entries.filter(e=>e.condition==='Good').length;
+  document.getElementById('stat-poor').textContent=entries.filter(e=>e.condition==='Poor').length;
+  const sysCounts={};
+  entries.forEach(e=>{sysCounts[e.system]=(sysCounts[e.system]||0)+1;});
+  const max=Math.max(...Object.values(sysCounts),1);
+  document.getElementById('sys-breakdown').innerHTML=Object.entries(sysCounts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([s,n])=>`<div class="sys-row"><span class="sys-row-label">${s}</span><div class="sys-bar-wrap"><div class="sys-bar" style="width:${Math.round(n/max*100)}%"></div></div><span class="sys-row-count">${n}</span></div>`).join('')||'<p style="font-size:13px;color:var(--text-tertiary)">No entries yet</p>';
+}
+
+function exportJSON(){
+  if(!entries.length){showToast('No entries to export');return;}
+  const data=entries.map(e=>({...e,photo:e.photo?'[base64 image]':null}));
+  dl('fieldlog_notes.json',JSON.stringify(data,null,2),'application/json');
+}
+
+function exportCSV(){
+  if(!entries.length){showToast('No entries to export');return;}
+  const cols=['id','project','type','system','component','condition','deficiency','deficiencyNote','note','timestamp'];
+  const rows=[cols.join(','),...entries.map(e=>cols.map(c=>JSON.stringify(e[c]??'')).join(','))];
+  dl('fieldlog_notes.csv',rows.join('\n'),'text/csv');
+}
+
+function exportDeficiencies(){
+  const defics=entries.filter(e=>e.deficiency);
+  if(!defics.length){showToast('No deficiencies flagged');return;}
+  const cols=['id','project','type','system','component','condition','deficiencyNote','note','timestamp'];
+  const rows=[cols.join(','),...defics.map(e=>cols.map(c=>JSON.stringify(e[c]??'')).join(','))];
+  dl('fieldlog_deficiencies.csv',rows.join('\n'),'text/csv');
+}
+
+let jszipLoadPromise=null;
+function loadJSZip(){
+  if(window.JSZip)return Promise.resolve();
+  if(jszipLoadPromise)return jszipLoadPromise;
+  jszipLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('failed to load'));
+    document.head.appendChild(s);
+  });
+  return jszipLoadPromise;
+}
+
+async function exportPhotos(){
+  const withPhotos=entries.filter(e=>e.photo);
+  if(!withPhotos.length){showToast('No photos to export');return;}
+  showToast('Loading zip tool...');
+  try{
+    await loadJSZip();
+  }catch(e){
+    showToast('No internet — connect to WiFi to export photos');
+    return;
+  }
+  showToast('Building zip...');
+  const zip=new JSZip();
+  const folders={};
+  withPhotos.forEach((e,i)=>{
+    const folderName=(e.project?e.project.replace(/[^a-z0-9]/gi,'_')+'__':'')+e.system.replace(/[^a-z0-9]/gi,'_');
+    if(!folders[folderName])folders[folderName]=zip.folder(folderName);
+    const ext=e.photo.split(';')[0].split('/')[1]||'jpg';
+    const b64=e.photo.split(',')[1];
+    const ts=new Date(e.timestamp).toISOString().replace(/[:.]/g,'-').slice(0,16);
+    const comp=(e.component||'').replace(/[^a-z0-9]/gi,'_');
+    const cond=e.condition?'_'+e.condition:'';
+    const defFlag=e.deficiency?'_DEFIC':'';
+    folders[folderName].file(`${ts}_${comp||i}${cond}${defFlag}.${ext}`,b64,{base64:true});
+    const meta=[e.condition?'Condition: '+e.condition:'',e.deficiency?'DEFICIENCY: '+(e.deficiencyNote||'flagged'):'',e.note?'Note: '+e.note:''].filter(Boolean).join('\n');
+    if(meta)folders[folderName].file(`${ts}_${comp||i}_note.txt`,meta);
+  });
+  const blob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='fieldlog_photos.zip';a.click();
+  URL.revokeObjectURL(url);showToast('Download started');
+}
+
+function clearAll(){
+  if(!confirm('Delete all '+entries.length+' entries? This cannot be undone.'))return;
+  entries=[];persist();renderLog();renderExport();updateBadge();showToast('Cleared');
+}
+
+function dl(name,content,type){
+  const b=new Blob([content],{type});const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);
+  showToast('Downloaded');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['capture','log','export'][i]===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if(tab==='log')renderLog();
+  if(tab==='export')renderExport();
+}
+
+const savedProj=localStorage.getItem('fl_last_project');
+if(savedProj){document.getElementById('proj-input').value=savedProj;updateProjDisplay();}
+populateSystems();updateBadge();renderLog();renderExport();
+</script>
+</body>
+</html>
